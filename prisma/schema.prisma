@@ -1,0 +1,341 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  STUDENT
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  DROPPED
+}
+
+enum SubmissionStatus {
+  PENDING
+  SUBMITTED
+  GRADED
+}
+
+enum AnnouncementAudience {
+  ALL
+  STUDENT
+  ADMIN
+}
+
+enum AnnouncementStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum AssessmentDifficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum CareerResourceType {
+  INTERVIEW
+  PORTFOLIO
+  RESUME
+  EVENT
+}
+
+model User {
+  id          String     @id @default(uuid())
+  firebaseUid String     @unique
+  email       String     @unique
+  displayName String?
+  role        Role       @default(STUDENT)
+  status      UserStatus @default(ACTIVE)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  enrollments Enrollment[]
+  submissions Submission[]
+  auditLogs   AuditLog[]
+  posts       CommunityPost[]
+  replies     CommunityReply[]
+  results     AssessmentResult[]
+  notifications Notification[]
+
+  @@index([email])
+  @@index([firebaseUid])
+}
+
+model Course {
+  id            String        @id @default(uuid())
+  title         String
+  description   String
+  level         String
+  durationWeeks Int?
+  status        CourseStatus  @default(DRAFT)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  modules       Module[]
+  lessons       Lesson[]
+  enrollments   Enrollment[]
+  assignments   Assignment[]
+  learningPathItems LearningPathItem[]
+
+  @@index([status])
+}
+
+model Module {
+  id        String   @id @default(uuid())
+  title     String
+  order     Int
+  courseId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  course   Course  @relation(fields: [courseId], references: [id])
+  lessons  Lesson[]
+
+  @@index([courseId])
+}
+
+model Lesson {
+  id              String   @id @default(uuid())
+  title           String
+  content         String
+  order           Int
+  durationMinutes Int?
+  courseId        String
+  moduleId        String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  course Course @relation(fields: [courseId], references: [id])
+  module Module? @relation(fields: [moduleId], references: [id])
+
+  @@index([courseId])
+  @@index([moduleId])
+}
+
+model Enrollment {
+  id        String           @id @default(uuid())
+  userId    String
+  courseId  String
+  status    EnrollmentStatus @default(ACTIVE)
+  progress  Int              @default(0)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id])
+  course Course @relation(fields: [courseId], references: [id])
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+}
+
+model Assignment {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  dueDate     DateTime?
+  courseId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  course      Course      @relation(fields: [courseId], references: [id])
+  submissions Submission[]
+
+  @@index([courseId])
+}
+
+model Submission {
+  id           String           @id @default(uuid())
+  assignmentId String
+  userId       String
+  content      String
+  status       SubmissionStatus @default(PENDING)
+  grade        Float?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id])
+  user       User       @relation(fields: [userId], references: [id])
+
+  @@index([assignmentId])
+  @@index([userId])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  action     String
+  entityType String
+  entityId   String
+  metadata   Json?
+  userId     String?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([createdAt])
+  @@index([userId])
+}
+
+model Announcement {
+  id          String               @id @default(uuid())
+  title       String
+  body        String
+  audience    AnnouncementAudience @default(ALL)
+  status      AnnouncementStatus   @default(DRAFT)
+  publishedAt DateTime?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+}
+
+model Event {
+  id          String      @id @default(uuid())
+  title       String
+  description String
+  location    String?
+  startAt     DateTime
+  endAt       DateTime
+  status      EventStatus @default(DRAFT)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model LearningPath {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  level       String
+  isFeatured  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items       LearningPathItem[]
+}
+
+model LearningPathItem {
+  id             String   @id @default(uuid())
+  learningPathId String
+  courseId       String?
+  order          Int
+  createdAt      DateTime @default(now())
+
+  learningPath LearningPath @relation(fields: [learningPathId], references: [id])
+  course       Course?      @relation(fields: [courseId], references: [id])
+
+  @@index([learningPathId])
+  @@index([courseId])
+}
+
+model Assessment {
+  id          String               @id @default(uuid())
+  title       String
+  description String
+  difficulty  AssessmentDifficulty @default(BEGINNER)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  questions AssessmentQuestion[]
+  results   AssessmentResult[]
+}
+
+model AssessmentQuestion {
+  id           String   @id @default(uuid())
+  assessmentId String
+  question     String
+  options      String[]
+  correctIndex Int
+  order        Int
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id])
+
+  @@index([assessmentId])
+}
+
+model AssessmentResult {
+  id            String   @id @default(uuid())
+  assessmentId  String
+  userId        String
+  score         Float
+  recommendedPathId String?
+  createdAt     DateTime @default(now())
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id])
+  user       User       @relation(fields: [userId], references: [id])
+
+  @@index([assessmentId])
+  @@index([userId])
+}
+
+model CommunityPost {
+  id        String   @id @default(uuid())
+  title     String
+  body      String
+  tags      String[]
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User           @relation(fields: [userId], references: [id])
+  replies CommunityReply[]
+
+  @@index([userId])
+}
+
+model CommunityReply {
+  id        String   @id @default(uuid())
+  body      String
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post CommunityPost @relation(fields: [postId], references: [id])
+  user User          @relation(fields: [userId], references: [id])
+
+  @@index([postId])
+  @@index([userId])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  title     String
+  body      String
+  userId    String
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model CareerResource {
+  id          String              @id @default(uuid())
+  title       String
+  description String
+  type        CareerResourceType
+  url         String?
+  createdAt   DateTime @default(now())
+}
