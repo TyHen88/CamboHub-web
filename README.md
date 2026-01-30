@@ -22,7 +22,7 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 
 ## Database (Prisma)
 
-Set `DATABASE_URL` in `.env` (e.g. PostgreSQL from Supabase).
+Set `DATABASE_URL` in `.env` (e.g. PostgreSQL from Supabase). **Supabase setup:** see [docs/INFRASTRUCTURE-SUPABASE.md](docs/INFRASTRUCTURE-SUPABASE.md).
 
 - **Apply migrations (production/CI):** `npm run db:migrate` or `npm run prisma:migrate:deploy`
 - **Develop locally (create migrations):** `npm run prisma:migrate`
