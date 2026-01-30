@@ -27,7 +27,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${spaceGrotesk.variable} ${fraunces.variable}`}>
+    <html lang="en" className={`${spaceGrotesk.variable} ${fraunces.variable}`} 
+      style={{ scrollBehavior: "smooth" }}
+      //prevent hydration mismatch
+      suppressHydrationWarning
+    >
       <body className="min-h-screen bg-background text-foreground antialiased">
         <Providers>{children}</Providers>
       </body>
